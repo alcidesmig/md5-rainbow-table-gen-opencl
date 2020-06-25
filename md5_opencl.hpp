@@ -10,7 +10,5 @@
 
 #include <CL/cl.hpp>
 
-#include "util.hpp"
-
 
 #endif
