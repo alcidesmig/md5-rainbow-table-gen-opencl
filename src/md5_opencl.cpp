@@ -4,7 +4,7 @@
 
 void write_to_file(std::vector<data> & plain, std::vector<hashed_data> & hashed) {
 
-    FILE * fp = fopen(OUTPUT_FILE, "w");
+    FILE * fp = fopen(OUTPUT_FILE, "a");
 
     for (int i = 0; i < plain.size(); i++) {
         fprintf(fp, "%s:", (char *) plain[i].value);
@@ -16,15 +16,8 @@ void write_to_file(std::vector<data> & plain, std::vector<hashed_data> & hashed)
 
 }
 
-int md5_hash()
+int md5_hash(bool write)
 {
-
-    /* Prepare data */
-    std::vector<data> plain; // Host memory for plain PINs
-    std::string z = "";
-    combine(&plain, 1, z);
-    int size = plain.size();
-    std::vector<hashed_data> hashed(size); // Host memory for store hashed PINs
 
     /* Select device */
     cl_uint deviceIndex = 0; // change here your device (cpu, gpu, ...)
@@ -45,35 +38,64 @@ int md5_hash()
     /* Create context and task queue*/
     cl::Context context(chosen_device);
     cl::CommandQueue queue(context, device);
-
-    /* Create buffers */
-    cl::Buffer d_plain = cl::Buffer(context, plain.begin(), plain.end(), true);
-    cl::Buffer d_hash = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(hashed_data) * size);
-
+    
     /* Read kernel and create program */
     cl::Program program(context, loadProgram(KERNEL_FILE), true);
     cl::make_kernel<cl::Buffer, cl::Buffer> md5_hash(program, "md5_hash");
 
+
+    /* Prepare data */
+    /*
+        std::vector<data> plain; // Host memory for plain PINs
+        std::string z = "";
+        combine(&plain, 1, z);
+    */
+    /* Prepare data */
+
+    FILE * fp = fopen(INPUT_FILE, "r");
+    fseek(fp, 0, SEEK_END);
+    size_t max = ftell(fp);
+    fclose(fp);
+
+    double sum_time = 0;
     clock_t start, end;
-    start = clock();
 
-    /* Enqueue tasks */
-    md5_hash(
-        cl::EnqueueArgs(
-            queue,
-            cl::NDRange(size)),
-        d_plain, d_hash);
+    /* Split file */
+    for (size_t file_start_read = 0; file_start_read < max; file_start_read += 1e8 - 10) {
+        std::vector<data> plain;
+        read_from_file(plain, file_start_read, 1e8);
+        int size = plain.size();
+        std::vector<hashed_data> hashed(size); // Host memory for store hashed PINs
 
-    queue.finish();
 
-    /* Copy from device to cpu */
-    cl::copy(queue, d_hash, hashed.begin(), hashed.end());
 
-    end = clock();
-    printf("%.4lf seconds\n", double(end - start) / CLOCKS_PER_SEC);
+        /* Create buffers */
+        cl::Buffer d_plain = cl::Buffer(context, plain.begin(), plain.end(), true);
+        cl::Buffer d_hash = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(hashed_data) * size);
 
-    /* Write results in OUTPUT_FILE */
-    write_to_file(plain, hashed);
+
+        start = clock();
+
+        /* Enqueue tasks */
+        md5_hash(
+            cl::EnqueueArgs(
+                queue,
+                cl::NDRange(size)),
+            d_plain, d_hash);
+
+        queue.finish();
+
+        /* Copy from device to cpu */
+        cl::copy(queue, d_hash, hashed.begin(), hashed.end());
+
+        end = clock();
+
+        sum_time += (double) end - start;
+
+        /* Write results in OUTPUT_FILE */
+        if (write) write_to_file(plain, hashed);
+    }
+    printf("%.4lf seconds\n", sum_time / CLOCKS_PER_SEC);
 
     return EXIT_SUCCESS;
 }

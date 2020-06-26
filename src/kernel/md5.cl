@@ -2,7 +2,7 @@
 Kernel code inspired in https://github.com/pod32g/MD5/blob/3dcef1a20495d6124ff756a832769dd42ae7a8f6/md5.c
 */
 
-#define SIZE_RAW_TEXT 5
+#define SIZE_RAW_TEXT 7
 
 typedef unsigned char                uint8_t;
 typedef unsigned int                uint32_t;
@@ -160,13 +160,14 @@ typedef struct {
 } hashed_data;
 typedef struct {
 	char value[SIZE_RAW_TEXT];
+	size_t size;
 } data;
 
 __kernel void md5_hash(__global data * in, __global hashed_data * out) {
 
 	int i = get_global_id(0);
 	uint8_t result[16];
-	md5(&in[i].value, SIZE_RAW_TEXT-1, result);
+	md5(&in[i].value, in[i].size, result);
 	int j = 0;
 	for (j = 0; j < 16; j++) {
 		out[i].value[j] = result[j];

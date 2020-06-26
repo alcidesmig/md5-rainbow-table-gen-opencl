@@ -8,22 +8,27 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <fstream>
 #include <CL/cl.hpp>
 #include <time.h>
 
-// SIZE_RAW_TEXT is the size + 1 of the PIN
-#define SIZE_RAW_TEXT 5
+// SIZE_RAW_TEXT is the size + 1 for allowed words
+#define SIZE_RAW_TEXT 7
 // output file to write the rainbow table
 #define OUTPUT_FILE "./raint.md5"
+#define INPUT_FILE "./wordlist.txt"
 // kernel file
 #define KERNEL_FILE "./kernel/md5.cl"
 
-char alphabet[10] = {'0', '1', '2', '3', '4', '5', '6',
-                 '7', '8', '9'};
+const char * alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 typedef struct {
     char value[SIZE_RAW_TEXT];
+    size_t size;
 } data;
 
 typedef struct {
