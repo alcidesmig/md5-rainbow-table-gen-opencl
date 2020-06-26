@@ -1,7 +1,5 @@
 #include "md5_opencl.hpp"
 
-//g++ -Wno-deprecated md5_opencl.cpp -o program -I${OCL_INC} -Iinclude -lOpenCL -L${OCL_LIB}
-
 void write_to_file(std::vector<data> & plain, std::vector<hashed_data> & hashed) {
 
     FILE * fp = fopen(OUTPUT_FILE, "a");
@@ -66,8 +64,6 @@ int md5_hash(bool write)
         read_from_file(plain, file_start_read, 1e8);
         int size = plain.size();
         std::vector<hashed_data> hashed(size); // Host memory for store hashed PINs
-
-
 
         /* Create buffers */
         cl::Buffer d_plain = cl::Buffer(context, plain.begin(), plain.end(), true);
