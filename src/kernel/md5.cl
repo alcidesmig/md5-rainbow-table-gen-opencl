@@ -164,10 +164,11 @@ typedef struct {
 } data;
 
 __kernel void md5_hash(__global data * in, __global hashed_data * out) {
-
 	int i = get_global_id(0);
+    data aux = *in[i];
+
 	uint8_t result[16];
-	md5(&in[i].value, in[i].size, result);
+	md5((uint8_t *) &aux.value, in[i].size, result);
 	int j = 0;
 	for (j = 0; j < 16; j++) {
 		out[i].value[j] = result[j];
